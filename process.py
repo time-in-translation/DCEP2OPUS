@@ -9,6 +9,8 @@ import string
 
 from merge_alignments import merge
 
+from treetagger_xml.xml import process_single
+from treetagger_xml.utils import instantiate_tagger
 
 def preprocess(languages, languages_dirs):
     # Tokenize and convert to XML
@@ -64,12 +66,19 @@ def preprocess_single(language, filename):
 def process(input_dir, output_dir, languages):
     languages_dirs = create_output_dirs(languages, output_dir)
     # fetch_raw(input_dir, languages, languages_dirs, 200)
-    preprocess(languages, languages_dirs)
+    # preprocess(languages, languages_dirs)
     # tokenize(languages, languages_dirs)
-    # treetag()
+    treetag(languages, languages_dirs)
 
     # sentence_align(input_dir, output_dir, languages, languages_dirs)
     # merge_alignments(output_dir, languages)
+
+
+def treetag(languages, languages_dirs):
+    for language in languages:
+        tagger = instantiate_tagger(language)
+        for src in glob.glob(os.path.join(languages_dirs[language], '*.xml')):
+            process_single(tagger, language, src, in_place=True)
 
 
 def merge_alignments(output_dir, languages):
