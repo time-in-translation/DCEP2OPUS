@@ -1,78 +1,17 @@
 from __future__ import print_function
 
 import argparse
-import datetime
 import glob
 import os
 import itertools
 import shutil
 import subprocess
-import string
-
-from merge_alignments import merge
 
 from treetagger_xml.xml import process_single
 from treetagger_xml.utils import instantiate_tagger
 
-
-def preprocess(languages, languages_dirs):
-    """
-    Preprocesses all files for a language
-    :param languages: the current languages
-    :param languages_dirs: the current directories per language
-    """
-    for language in languages:
-        for filename in glob.glob(os.path.join(languages_dirs[language], '*.txt')):
-            preprocess_single(language, filename)
-
-
-def preprocess_single(language, filename):
-    """
-    Preprocess: a single file
-    - Remove lines before (and including) the date of the article.
-    - Remove lines when the attachments start
-    - Add paragraph breaks when a potential title is encountered
-
-    :param language: the current language
-    :param filename: the current filename
-    """
-    lines = []
-    with open(filename, 'rb') as f:
-        look_for_date = True
-        for line in f:
-            line = line.strip()
-
-            if look_for_date:
-                try:
-                    # A date looks like 2011-07-05 - 13:39
-                    datetime.datetime.strptime(line, '%Y-%m-%d - %H:%M')
-                    look_for_date = False
-                    continue
-                except ValueError:
-                    continue
-            else:
-                # Check for stop conditions
-                if line[:8].isdigit():
-                    # We might have run into another date:
-                    try:
-                        datetime.datetime.strptime(line[:8], '%Y%m%d')
-                        # If this is indeed a date, stop here.
-                        break
-                    except ValueError:
-                        continue
-                if line == language.upper() or line.startswith('-//'):
-                    # Definitely stop if a line consisting of only the language is found, or it starts with '-//'
-                    break
-
-                # Check for titles
-                if not line.endswith(tuple(string.punctuation)):
-                    lines.append('')
-
-                lines.append(line)
-
-    new_filename = os.path.splitext(filename)[0] + '.prep'
-    with open(new_filename, 'wb') as f:
-        f.write('\n'.join(lines))
+from merge_alignments import merge
+from preprocess import preprocess_single
 
 
 def process(input_dir, output_dir, languages, fetch_limit, input_filter):
@@ -104,6 +43,17 @@ def process(input_dir, output_dir, languages, fetch_limit, input_filter):
 
     print('Merging the alignments...')
     merge_alignments(output_dir, languages)
+
+
+def preprocess(languages, languages_dirs):
+    """
+    Preprocesses all files for a language
+    :param languages: the current languages
+    :param languages_dirs: the current directories per language
+    """
+    for language in languages:
+        for filename in glob.glob(os.path.join(languages_dirs[language], '*.txt')):
+            preprocess_single(language, filename)
 
 
 def treetag(languages, languages_dirs):

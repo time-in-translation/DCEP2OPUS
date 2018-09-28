@@ -6,6 +6,11 @@ from lxml import etree
 
 
 def merge(files_in, file_out):
+    """
+    Merges several alignment files (cesAlign format) into a single alignment file
+    :param files_in: the input files
+    :param file_out: the output file, with all alignments merged into one file
+    """
     root = etree.Element('cesAlign', attrib={'version': '1.0'})
 
     for file_in in files_in:
@@ -25,8 +30,8 @@ def merge(files_in, file_out):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('file_in', type=str, nargs='+', help='Input files')
-    parser.add_argument('file_out', type=str, help='Output file')
+    parser.add_argument('file_in', nargs='+', help='Input files')
+    parser.add_argument('file_out', help='Output file')
     args = parser.parse_args()
 
     merge(args.file_in, args.file_out)
