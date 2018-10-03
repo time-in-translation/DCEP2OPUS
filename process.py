@@ -3,15 +3,15 @@ from __future__ import print_function
 import argparse
 import glob
 import os
-import itertools
 import shutil
 import subprocess
 
 from treetagger_xml.xml import process_single
 from treetagger_xml.utils import instantiate_tagger
 
-from merge_alignments import merge
 from preprocess import preprocess_single
+from align import merge_alignments, sentence_align
+from utils import create_output_dirs
 
 
 def process(input_dir, output_dir, languages, fetch_limit, input_filter):
@@ -24,7 +24,7 @@ def process(input_dir, output_dir, languages, fetch_limit, input_filter):
     :param input_filter: the document types to extract
     """
     print('Creating language directories...')
-    languages_dirs = create_output_dirs(languages, output_dir)
+    languages_dirs = create_output_dirs(output_dir, languages)
 
     print('Fetching raw .txt-files...')
     fetch_raw(input_dir, languages, languages_dirs, fetch_limit, input_filter)
@@ -66,81 +66,6 @@ def treetag(languages, languages_dirs):
         tagger = instantiate_tagger(language)
         for src in glob.glob(os.path.join(languages_dirs[language], '*.xml')):
             process_single(tagger, language, src, in_place=True)
-
-
-def merge_alignments(output_dir, languages):
-    """
-    Merges the created alignments into a single file
-    :param output_dir: the output directory (where all output is stored)
-    :param languages: the current languages
-    """
-    comb_ls = itertools.combinations(sorted(languages), 2)
-    for sl, tl in comb_ls:
-        # Merge alignment files
-        alignments = glob.glob(os.path.join(output_dir, '{sl}-{tl}-*.xml'.format(sl=sl, tl=tl)))
-        merged_file = os.path.join(output_dir, '{sl}-{tl}.xml'.format(sl=sl, tl=tl))
-        merge(alignments, merged_file)
-
-        # Remove individual alignment files
-        for alignment in alignments:
-            os.remove(alignment)
-
-
-def sentence_align(input_dir, output_dir, languages, languages_dirs):
-    """
-    Applies sentence alignment (using hunalign) to the DCEP corpus
-    :param input_dir: the input directory (will remain untouched)
-    :param output_dir: the output directory (where all output is stored)
-    :param languages: the current languages
-    :param languages_dirs: the current directories per language
-    """
-    # Look up the translations
-    translations = dict()
-    comb_ls = itertools.combinations(sorted(languages), 2)
-
-    for comb_l in comb_ls:
-        with open(os.path.join(input_dir, 'indices', '-'.join(comb_l).upper()), 'rb') as f:
-            for line in f:
-                _, src, trg = line.split('\t')
-                src = os.path.splitext(os.path.basename(src))[0]
-                trg = os.path.splitext(os.path.basename(trg))[0]
-                translations[src] = trg
-
-        sl = comb_l[0]
-        tl = comb_l[1]
-        for i, src in enumerate(glob.glob(os.path.join(languages_dirs[sl], '*.xml'))):
-            src_lookup = os.path.splitext(os.path.basename(src))[0]
-
-            try:
-                trg_lookup = translations[src_lookup]
-            except KeyError:
-                print('File {} not found in the indices file'.format(src_lookup))
-                continue
-
-            src = os.path.join(*(src.split(os.path.sep)[1:]))  # Removes the first folder in the path, see https://stackoverflow.com/a/26724413
-            trg = os.path.join(tl, trg_lookup + '.xml')
-            if not os.path.exists(os.path.join(output_dir, trg)):
-                print('Translation for {} ({}) not found'.format(src_lookup, trg))
-                continue
-
-            # Create alignment files
-            command = 'uplug align/hun -src {src} -trg {trg} -s {sl} -t {tl}'.format(src=src, trg=trg, sl=sl, tl=tl)
-            out_file = os.path.join(output_dir, '{sl}-{tl}-{i}.xml'.format(sl=sl, tl=tl, i=i))
-            with open(out_file, 'wb') as out:
-                subprocess.call(command, stdout=out, shell=True, cwd=output_dir)
-
-
-def create_output_dirs(languages, output_dir):
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    # Make dirs per language
-    languages_dirs = dict()
-    for language in languages:
-        language_dir = os.path.join(output_dir, language)
-        if not os.path.exists(language_dir):
-            os.mkdir(language_dir)
-        languages_dirs[language] = language_dir
-    return languages_dirs
 
 
 def tokenize(languages, languages_dirs):
