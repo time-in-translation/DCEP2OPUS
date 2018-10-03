@@ -8,6 +8,8 @@ import string
 EMAIL_REGEX = re.compile(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+')
 # Phone numbers look like (+32) 2 28 41009 or ( +32 ) 2 28 44264
 PHONE_REGEX = re.compile(r'\(\s*\+\d{2}\s*\)[\s\d]+')
+# Ampersand replacements
+AND = {'en': 'and', 'de': 'und', 'nl': 'en'}
 
 
 def preprocess(language, file_names):
@@ -62,6 +64,9 @@ def preprocess_single(language, file_name):
                 # Check for titles
                 if not line.endswith(tuple(string.punctuation)):
                     lines.append('')
+
+                # Replace ampersands (not dealt with correctly by uplug)
+                line = line.replace(' & ', ' ' + AND[language] + ' ')
 
                 lines.append(line)
                 i += 1
