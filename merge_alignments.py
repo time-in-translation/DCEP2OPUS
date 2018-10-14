@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 
 from lxml import etree
 
 
-def merge(files_in, file_out):
+def merge(files_in, file_out, delete_files_in=False):
     """
     Merges several alignment files (cesAlign format) into a single alignment file
     :param files_in: the input files
@@ -27,11 +28,16 @@ def merge(files_in, file_out):
     tree.docinfo.system_url = 'dtd/xcesAlign.dtd'
     tree.write(file_out, pretty_print=True, xml_declaration=True, encoding='utf-8')
 
+    if delete_files_in:
+        for file_in in files_in:
+            os.remove(file_in)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('file_in', nargs='+', help='Input files')
     parser.add_argument('file_out', help='Output file')
+    parser.add_argument('--delete', action='store_true', help='Delete input files?')
     args = parser.parse_args()
 
-    merge(args.file_in, args.file_out)
+    merge(args.file_in, args.file_out, args.delete)

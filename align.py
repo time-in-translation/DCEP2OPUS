@@ -22,11 +22,7 @@ def merge_alignments(output_dir, languages):
         # Merge alignment files
         alignments = glob.glob(os.path.join(output_dir, '{sl}-{tl}-*.xml'.format(sl=sl, tl=tl)))
         merged_file = os.path.join(output_dir, '{sl}-{tl}.xml'.format(sl=sl, tl=tl))
-        merge(alignments, merged_file)
-
-        # Remove individual alignment files
-        for alignment in alignments:
-            os.remove(alignment)
+        merge(alignments, merged_file, delete_files_in=True)
 
 
 def sentence_align(input_dir, output_dir, languages, languages_dirs):
